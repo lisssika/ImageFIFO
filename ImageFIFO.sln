@@ -6,6 +6,9 @@ MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ImageFIFO", "ImageFIFO\ImageFIFO.vcxproj", "{AEC60F5B-E3CB-49F9-BF66-03FC1889C3C9}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Test-ImageFIFO", "Test-ImageFIFO\Test-ImageFIFO.vcxproj", "{320B82A6-7F11-4299-B7B0-3CD1AADA86DD}"
+	ProjectSection(ProjectDependencies) = postProject
+		{AEC60F5B-E3CB-49F9-BF66-03FC1889C3C9} = {AEC60F5B-E3CB-49F9-BF66-03FC1889C3C9}
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

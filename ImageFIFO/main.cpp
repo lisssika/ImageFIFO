@@ -1,22 +1,11 @@
-#include <iostream>
-#include <thread>
-#include <chrono>
-#include "ReadAndWrite.h"
 #include "ImageFIFO.h"
-using namespace std;
-
-void threadFunction()
-{
-	//
-}
-
+#include "ReadAndWrite.h"
+#include <string>
 int main()
 {
-	ImageFIFO im_fifo(2548762, 2);
-	writer(im_fifo, 1);
-	reader(im_fifo, 1);
-	
-	//std::thread thr(threadFunction);
-	//thr.join();
-	return 0;
+	ImageFIFO image_fifo(2548762, 1);
+	const std::string inp("input1.BMP");
+	const std::string outp("output1.BMP");
+	writer(image_fifo, inp);
+	reader(image_fifo, outp);
 }
