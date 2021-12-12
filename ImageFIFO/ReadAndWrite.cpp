@@ -1,7 +1,9 @@
 #include "ReadAndWrite.h"
 #include <fstream>
 #include <string>
-
+std::condition_variable free_blocks_added;
+std::condition_variable ready_blocks_added;
+std::mutex mutex_;
 void writer(ImageFIFO& fifo, size_t n)
 {
 	std::ifstream file;
@@ -13,14 +15,18 @@ void writer(ImageFIFO& fifo, size_t n)
 		data = fifo.getFree();
 		if (data)
 		{
-			file.open("input" + std::to_string(i), std::ios::binary);
+			std::string name = "input" + std::to_string(i)+".BMP";
+			file.open(name, std::ios::binary);
 			if (file.is_open())
 			{
 				file.read(static_cast<char*>(data), fifo.get_blockSize());
 				fifo.addReady(data);
 				ready_blocks_added.notify_all();
 			}
-			throw std::runtime_error("file can't open");
+			else
+			{
+				throw std::runtime_error("file can't open");
+			}
 		}
 		else
 		{
@@ -41,7 +47,8 @@ void reader(ImageFIFO& fifo, size_t n)
 		data = fifo.getReady();
 		if (data)
 		{
-			file.open("output" + std::to_string(i), std::ios::binary);
+			std::string name = "output" + std::to_string(i) + ".BMP";
+			file.open(name, std::ios::binary);
 			if (file.is_open())
 			{
 				file.write(static_cast<char*>(data), fifo.get_blockSize());

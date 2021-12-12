@@ -12,9 +12,10 @@ void threadFunction()
 
 int main()
 {
-	ImageFIFO im_fifo(500, 2);
-	reader(im_fifo, 1);
+	ImageFIFO im_fifo(2548762, 2);
 	writer(im_fifo, 1);
+	reader(im_fifo, 1);
+	
 	//std::thread thr(threadFunction);
 	//thr.join();
 	return 0;
