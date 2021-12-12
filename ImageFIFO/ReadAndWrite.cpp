@@ -1,22 +1,22 @@
 #include "ReadAndWrite.h"
 #include <fstream>
 #include <string>
+#include <sstream>
+
 std::condition_variable free_blocks_added;
 std::condition_variable ready_blocks_added;
 std::mutex mutex_;
-void writer(ImageFIFO& fifo, size_t n)
+
+void writer(ImageFIFO& fifo, const std::string& file_names)
 {
+	std::stringstream file_names_(file_names);
 	std::ifstream file;
-	size_t i = 0;
 	void* data;
-	while (i < n)
-	{
-		i++;
+	for (std::string file_name; std::getline(file_names_, file_name, ';'); ) {
 		data = fifo.getFree();
 		if (data)
 		{
-			std::string name = "input" + std::to_string(i)+".BMP";
-			file.open(name, std::ios::binary);
+			file.open(file_name, std::ios::binary);
 			if (file.is_open())
 			{
 				file.read(static_cast<char*>(data), fifo.get_blockSize());
@@ -36,19 +36,16 @@ void writer(ImageFIFO& fifo, size_t n)
 	}
 }
 
-void reader(ImageFIFO& fifo, size_t n)
+void reader(ImageFIFO& fifo, const std::string& file_names)
 {
+	std::stringstream files(file_names);
 	std::ofstream file;
-	size_t i = 0;
 	void* data;
-	while (i < n)
-	{
-		i++;
+	for (std::string file_name; std::getline(files, file_name, ';'); ) {
 		data = fifo.getReady();
 		if (data)
 		{
-			std::string name = "output" + std::to_string(i) + ".BMP";
-			file.open(name, std::ios::binary);
+			file.open(file_name, std::ios::binary);
 			if (file.is_open())
 			{
 				file.write(static_cast<char*>(data), fifo.get_blockSize());
