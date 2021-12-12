@@ -2,6 +2,7 @@
 #include <fstream>
 #include <string>
 #include <sstream>
+#include <stdexcept>
 
 std::condition_variable free_blocks_added;
 std::condition_variable ready_blocks_added;
