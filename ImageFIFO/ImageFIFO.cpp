@@ -5,6 +5,8 @@
 void* ImageFIFO::get_ptr(std::list<void*>& list)
 {
 	std::lock_guard<std::mutex>guard(m_FifoMutex);
+	if (list.empty())
+		return nullptr;
 	void* ptr = list.front();
 	if(ptr)
 	{

@@ -7,7 +7,7 @@ std::condition_variable free_blocks_added;
 std::condition_variable ready_blocks_added;
 std::mutex mutex_;
 
-void writer(ImageFIFO& fifo, const std::string& file_names)
+int writer(ImageFIFO& fifo, const std::string& file_names)
 {
 	std::stringstream file_names_(file_names);
 	std::ifstream file;
@@ -35,9 +35,10 @@ void writer(ImageFIFO& fifo, const std::string& file_names)
 			free_blocks_added.wait(lk);
 		}
 	}
+	return 0;
 }
 
-void reader(ImageFIFO& fifo, const std::string& file_names)
+int reader(ImageFIFO& fifo, const std::string& file_names)
 {
 	std::stringstream files(file_names);
 	std::ofstream file;
@@ -65,4 +66,5 @@ void reader(ImageFIFO& fifo, const std::string& file_names)
 			ready_blocks_added.wait(lk);
 		}
 	}
+	return 0;
 }
