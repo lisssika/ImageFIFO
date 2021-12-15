@@ -34,6 +34,7 @@ ImageFIFO::ImageFIFO(size_t blockSize, size_t blockCount) : blockSize_(blockSize
 	for (size_t i = 0; i < blockCount; ++i)
 	{
 		m_Data.push_back(std::malloc(blockSize));
+		flags.push_back(free_flag);
 	}
 }
 
@@ -59,6 +60,7 @@ void ImageFIFO::addReady(void* data)//writer
 		if (flags[i] == free_flag)
 		{
 			m_Data[i] = data;
+			flags[i] = ready_flag;
 			return;
 		}
 	}
@@ -75,12 +77,12 @@ void ImageFIFO::addFree(void* data)//writer
 	int i = 0;
 	for (const auto& block : m_Data)
 	{
-		i++;
 		if (block == data)
 		{
 			flags[i] = free_flag;
 			return;
 		}
+		i++;
 	}
 	throw std::runtime_error("no block with this data!");
 }
