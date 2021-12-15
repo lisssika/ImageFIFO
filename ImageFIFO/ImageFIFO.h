@@ -1,6 +1,6 @@
 #pragma once
 #include <mutex>
-#include <list>
+#include <vector>
 
 class ImageFIFO final {
 public:
@@ -13,9 +13,13 @@ public:
 	size_t get_blockSize() const;
 private:
 	std::mutex m_FifoMutex;
-	std::list<void*> m_FreeData;
-	std::list<void*> m_ReadyData;
-	void* get_ptr(std::list<void*>& list);
-	void add(std::list<void*>& list, void* data);
+	std::vector<void*> m_Data;
+	std::vector<bool> flags;
+
+	void* get_ptr(bool flag_of_ready);
+	bool add(void* data, bool flag);
 	size_t blockSize_;
+	bool eq_size_data_flags(bool to_throw) const;
+	bool free_flag = false;
+	bool ready_flag = !free_flag;
 };

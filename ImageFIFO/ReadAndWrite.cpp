@@ -58,7 +58,7 @@ int reader(ImageFIFO& fifo, const std::string& file_names)
 		{
 			file.write(static_cast<char*>(data), fifo.get_blockSize());
 			fifo.addFree(data);
-			free_blocks_added.notify_all(); // noify_one???
+			free_blocks_added.notify_all(); // или noify_one?
 			file.close();
 		}
 		else
