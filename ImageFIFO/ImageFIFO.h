@@ -17,7 +17,6 @@ private:
 	std::vector<bool> flags;
 
 	void* get_ptr(bool flag_of_ready);
-	bool add(void* data, bool flag);
 	size_t blockSize_;
 	bool eq_size_data_flags(bool to_throw) const;
 	bool free_flag = false;

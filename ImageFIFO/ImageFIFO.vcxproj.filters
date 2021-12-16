@@ -4,18 +4,25 @@
     <ClCompile Include="ImageFIFO.cpp">
       <Filter>ImageFIFO</Filter>
     </ClCompile>
-    <ClCompile Include="ReadAndWrite.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="ReadAndWrite.cpp">
+      <Filter>ReaderWriter</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="ImageFIFO">
       <UniqueIdentifier>{af84afac-aa74-4b69-9731-d3af19f97f3a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ReaderWriter">
+      <UniqueIdentifier>{2aee7415-44f9-49a8-b265-0f8b64e10dc6}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ImageFIFO.h">
       <Filter>ImageFIFO</Filter>
     </ClInclude>
-    <ClInclude Include="ReadAndWrite.h" />
+    <ClInclude Include="ReadAndWrite.h">
+      <Filter>ReaderWriter</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
