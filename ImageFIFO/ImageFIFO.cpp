@@ -1,49 +1,54 @@
 #include "ImageFIFO.h"
 #include <mutex>
 #include <vector>
+#include <new>
+
 
 void* ImageFIFO::get_ptr(bool flag)
 {
-	eq_size_data_flags(true);//  вот вроде странно каждый раз проверять, а вроде если не проверить, то можно выйти за границы вектора
+	char* ptr = static_cast<char*>( m_Data);
 	std::lock_guard<std::mutex>guard(m_FifoMutex);
 	for (size_t i = 0; i < flags.size(); i++)
 	{
 		if (flags[i] == flag)
 		{
-			return m_Data[i];
+			return static_cast<void*>(ptr);
 		}
+		ptr += blockSize_;
 	}
 	return nullptr;
 }
 
-bool ImageFIFO::eq_size_data_flags(bool to_throw) const
+void ImageFIFO::add(void* data, bool flag)
 {
-	if (m_Data.size() != flags.size())
+	if (static_cast<char*>(data) - static_cast<char*>(m_Data) < 0)
 	{
-		if (to_throw)
-			throw std::runtime_error("size of data vector is not equal size of data flags vector!");
-		return false;
+		throw std::runtime_error("out of bounds)");
 	}
-	return true;
+	const unsigned int n = (static_cast<char*>(data) - static_cast<char*>(m_Data)) / blockSize_;
+	if (n > blockCount_)
+	{
+		throw std::runtime_error("out of bounds)");
+	}
+	std::lock_guard<std::mutex>guard(m_FifoMutex);
+	flags[n] = flag;
 }
 
 
-ImageFIFO::ImageFIFO(size_t blockSize, size_t blockCount) : blockSize_(blockSize)
+ImageFIFO::ImageFIFO(size_t blockSize, size_t blockCount) : blockSize_(blockSize), blockCount_(blockCount)
 {
 	std::lock_guard<std::mutex> guard(m_FifoMutex);
-	for (size_t i = 0; i < blockCount; ++i)
+	m_Data = ::operator new(blockSize*blockCount);
+	for (size_t i = 0; i<blockCount; i++)
 	{
-		m_Data.push_back(std::malloc(blockSize));
 		flags.push_back(free_flag);
 	}
+	
 }
 
 ImageFIFO::~ImageFIFO()
 {
-	for (auto& free_data : m_Data)
-	{
-		free(free_data);
-	}
+	operator delete(m_Data);
 }
 
 void* ImageFIFO::getFree() // writer
@@ -53,18 +58,7 @@ void* ImageFIFO::getFree() // writer
 
 void ImageFIFO::addReady(void* data)//writer
 {
-	eq_size_data_flags(true); //  вот вроде странно каждый раз проверять, а вроде если не проверить, то можно выйти за границы вектора
-	std::lock_guard<std::mutex> guard(m_FifoMutex);
-	for (size_t i = 0; i < flags.size(); i++)
-	{
-		if (flags[i] == free_flag)
-		{
-			m_Data[i] = data;
-			flags[i] = ready_flag;
-			return;
-		}
-	}
-	throw std::runtime_error("no free blocks!");
+	add(data, ready_flag);
 }
 
 void* ImageFIFO::getReady()//reader
@@ -74,17 +68,7 @@ void* ImageFIFO::getReady()//reader
 
 void ImageFIFO::addFree(void* data)//writer
 {
-	int i = 0;
-	for (const auto& block : m_Data)
-	{
-		if (block == data)
-		{
-			flags[i] = free_flag;
-			return;
-		}
-		i++;
-	}
-	throw std::runtime_error("no block with this data!");
+	add(data, free_flag);
 }
 
 size_t ImageFIFO::get_blockSize() const
