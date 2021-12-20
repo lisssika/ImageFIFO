@@ -1,18 +1,16 @@
 #include "ImageFIFO.h"
 #include <mutex>
 #include <vector>
-#include <new>
-
 
 void* ImageFIFO::get_ptr(bool flag)
 {
-	char* ptr = static_cast<char*>( m_Data);
+	char* ptr = m_Data.get();
 	std::lock_guard<std::mutex>guard(m_FifoMutex);
 	for (size_t i = 0; i < flags.size(); i++)
 	{
 		if (flags[i] == flag)
 		{
-			return static_cast<void*>(ptr);
+			return m_Data.get() + i * blockSize_;
 		}
 		ptr += blockSize_;
 	}
@@ -21,11 +19,11 @@ void* ImageFIFO::get_ptr(bool flag)
 
 void ImageFIFO::add(void* data, bool flag)
 {
-	if (static_cast<char*>(data) - static_cast<char*>(m_Data) < 0)
+	if (static_cast<char*>(data) -m_Data.get() < 0)
 	{
 		throw std::runtime_error("out of bounds)");
 	}
-	const unsigned int n = (static_cast<char*>(data) - static_cast<char*>(m_Data)) / blockSize_;
+	const unsigned int n = (static_cast<char*>(data) - m_Data.get()) / blockSize_;
 	if (n > blockCount_)
 	{
 		throw std::runtime_error("out of bounds)");
@@ -38,17 +36,11 @@ void ImageFIFO::add(void* data, bool flag)
 ImageFIFO::ImageFIFO(size_t blockSize, size_t blockCount) : blockSize_(blockSize), blockCount_(blockCount)
 {
 	std::lock_guard<std::mutex> guard(m_FifoMutex);
-	m_Data = ::operator new(blockSize*blockCount);
+	m_Data.reset(new char [blockSize * blockCount]);
 	for (size_t i = 0; i<blockCount; i++)
 	{
 		flags.push_back(free_flag);
 	}
-	
-}
-
-ImageFIFO::~ImageFIFO()
-{
-	operator delete(m_Data);
 }
 
 void* ImageFIFO::getFree() // writer
@@ -74,4 +66,9 @@ void ImageFIFO::addFree(void* data)//writer
 size_t ImageFIFO::get_blockSize() const
 {
 	return blockSize_;
+}
+
+size_t ImageFIFO::get_blockCount() const
+{
+	return  blockCount_;
 }

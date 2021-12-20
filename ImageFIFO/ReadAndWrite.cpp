@@ -1,30 +1,62 @@
 #include "ReadAndWrite.h"
 #include <fstream>
+#include <future>
 #include <string>
 #include <sstream>
+#include <vector>
 #include <stdexcept>
 
-int ReaderWriter::writer(const std::string& file_names)
+ReaderWriter::ReaderWriter(
+	std::unique_ptr<ImageFIFO> fifo, 
+	std::vector<std::string> const& file_names_inp,
+	std::vector<std::string> const& file_names_out
+) :
+	fifo_(std::move(fifo)),
+	file_names_inp_(file_names_inp),
+	file_names_out_(file_names_out)
 {
-	std::stringstream file_names_(file_names);
-	std::ifstream file;
-	void* data;
-	for (std::string file_name; std::getline(file_names_, file_name, ' ');)
+	if(file_names_out!=file_names_inp)
 	{
-		data = fifo_->getFree();
+		throw std::runtime_error("count of input and output files isn't equal");
+	}
+}
+
+std::pair<int, int> ReaderWriter::exec(bool async)
+{
+	std::future<int> threadWriter, threadReader;
+	auto policy = std::launch::async;
+	if (!async)
+	{
+		if (fifo_->get_blockCount() < file_names_inp_.size())
+		{
+			throw std::runtime_error(
+				"Sync mode requires the count of blocks to be greater than the number of input files");
+		}
+		policy = std::launch::deferred;
+	}
+	threadWriter = std::async(policy, &ReaderWriter::writer, this);
+	threadReader = std::async(policy, &ReaderWriter::reader, this);
+	return { threadWriter.get() , threadReader.get()};
+}
+
+
+int ReaderWriter::writer()
+{
+	for (auto& file_name : file_names_inp_)
+	{
+		void*  data = fifo_->getFree();
 		if (!data)
 		{
 			std::unique_lock<std::mutex> lk(mutex_);
 			free_blocks_added.wait(lk);
 			data = fifo_->getFree();
 		}
-		file.open(file_name, std::ios::binary);
-		if (file.is_open())
+		std::ifstream file(file_name, std::ios::binary);
+		if (file)
 		{
 			file.read(static_cast<char*>(data), fifo_->get_blockSize());
 			fifo_->addReady(data);
-			ready_blocks_added.notify_all();
-			file.close();
+			ready_blocks_added.notify_one();
 		}
 		else
 		{
@@ -34,30 +66,24 @@ int ReaderWriter::writer(const std::string& file_names)
 	return 0;
 }
 
-ReaderWriter::ReaderWriter(std::unique_ptr<ImageFIFO> fifo):fifo_(std::move(fifo)){}
 
-int ReaderWriter::reader(const std::string& file_names)
+int ReaderWriter::reader()
 {
-	std::stringstream files(file_names);
-	std::ofstream file;
-	void* data;
-	for (std::string file_name; std::getline(files, file_name, ' ');)
+	for(auto& file_name:file_names_out_)
 	{
-		data = fifo_->getReady();
+		void* data = fifo_->getReady();
 		if (!data)
 		{
 			std::unique_lock<std::mutex> lk(mutex_);
 			ready_blocks_added.wait(lk);
 			data = fifo_->getReady();
 		}
-
-		file.open(file_name, std::ios::binary);
-		if (file.is_open())
+		std::ofstream file(file_name, std::ios::binary);
+		if (file)
 		{
 			file.write(static_cast<char*>(data), fifo_->get_blockSize());
 			fifo_->addFree(data);
-			free_blocks_added.notify_all(); // или noify_one?
-			file.close();
+			free_blocks_added.notify_one();
 		}
 		else
 		{

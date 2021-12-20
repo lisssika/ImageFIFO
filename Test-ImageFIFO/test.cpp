@@ -6,22 +6,22 @@
 #include <fstream>
 #include <iterator>
 #include <future>
-#include <sstream>
 #include <functional>
 #include<memory>
-#include <stdexcept>
+#include <vector>
 
 std::string input_path("images/input/");
 std::string sync_one_path("images/Sync_one/");
 std::string sync_several_path("images/Sync_several/");
 std::string async_one_path("images/Async_one/");
 std::string async_several_path("images/Async_several/");
+bool async_exec = true;
 
 bool two_equal_files(std::string f1, std::string f2)
 {
 	std::ifstream file1(f1, std::ios::binary);
 	std::ifstream file2(f2, std::ios::binary);
-	if (file1.is_open()&&file2.is_open())
+	if (file1 && file2 )
 	{
 		return std::equal(
 			std::istreambuf_iterator<char>(file1),
@@ -32,31 +32,28 @@ bool two_equal_files(std::string f1, std::string f2)
 	return false;
 }
 
-bool several_pairs_equal_files(const std::string& inp, const std::string& out)
+bool several_pairs_equal_files(const std::vector<std::string>& inp, const std::vector<std::string>& out)
 {
-	std::stringstream inp_ss(inp);
-	std::stringstream out_ss(out);
 	bool is_equal = true;
 
-	for (std::string input; std::getline(inp_ss, input, ' '); ) {
-		std::string output; std::getline(out_ss, output, ' ');
-		is_equal*=two_equal_files(input, output);
+	for (size_t i = 0; i < inp.size();i++ ) {
+		is_equal*=two_equal_files(inp[i], out[i]);
 	}
 	return is_equal;
 }
 
-void generate_file_names(size_t n, std::string& inp, std::string& out, bool sync)
+void generate_file_names(size_t n, std::vector<std::string>& inp, std::vector<std::string>& out, bool sync)
 {
 	for (size_t i = 1; i <= n; i++)
 	{
-		inp += input_path + "input" + std::to_string(i) + ".BMP ";
+		inp.push_back(input_path + "input" + std::to_string(i) + ".BMP ");
 		if(sync)
 		{
-			out += sync_several_path + "output" + std::to_string(i) + ".BMP ";
+			out.push_back( sync_several_path + "output" + std::to_string(i) + ".BMP ");
 		}
 		else
 		{
-			out += async_several_path + "output" + std::to_string(i) + ".BMP ";
+			out.push_back( async_several_path + "output" + std::to_string(i) + ".BMP ");
 		}
 	}
 }
@@ -75,20 +72,18 @@ TEST(Sync, one_file)
 	ImageFIFO image_fifo(2548762, 1);
 	const std::string inp = input_path + "input1.BMP";
 	const std::string out = sync_one_path + "output1.BMP";
-	ReaderWriter rw(std::make_unique<ImageFIFO>(2548762, 1));
-	rw.writer( inp);
-	rw.reader( out);
+	ReaderWriter rw(std::make_unique<ImageFIFO>(2548762, 1), {inp}, {out});
+	rw.exec(!async_exec);
 	EXPECT_TRUE(two_equal_files(inp, out));
 }
 
 TEST(Sync, sevral_files)
 {
-	std::string inp;
-	std::string out;  
+	std::vector<std::string> inp;
+	std::vector<std::string> out;
 	generate_file_names(3, inp, out, true);
-	ReaderWriter rw(std::make_unique<ImageFIFO>(2548762, 3));
-	rw.writer(inp);
-	rw.reader(out);
+	ReaderWriter rw(std::make_unique<ImageFIFO>(2548762, 3), inp, out);
+	rw.exec(!async_exec);
 	EXPECT_TRUE(several_pairs_equal_files(inp, out));
 }
 
@@ -97,27 +92,20 @@ TEST(Async, one_file)
 {
 	const std::string inp = input_path + "input1.BMP";
 	const std::string out = async_one_path + "output1.BMP";
-	ReaderWriter rw(std::make_unique<ImageFIFO>(2548762, 1));
-	std::future<int> threadWriter = std::async(std::launch::async, &ReaderWriter::reader, &rw, std::ref(out));
-	std::future<int> threadReader = std::async(std::launch::async, &ReaderWriter::writer, &rw, std::ref(inp));
-	threadReader.get();
-	threadWriter.get();
+	ReaderWriter rw(std::make_unique<ImageFIFO>(2548762, 1), {inp}, {out});
+	rw.exec(async_exec);
 	EXPECT_TRUE(two_equal_files(inp, out));
 }
 
 TEST(Async, several_files)
 {
 	ImageFIFO image_fifo(2548762, 3);
-	std::string inp;
-	std::string out;
+	std::vector<std::string> inp;
+	std::vector<std::string> out;
 	generate_file_names(3, inp, out, false);
 
-	ReaderWriter rw(std::make_unique<ImageFIFO>(2548762, 3));
-	std::future<int> threadWriter = std::async(std::launch::async, &ReaderWriter::reader, &rw, std::ref(out));
-	std::future<int> threadReader = std::async(std::launch::async, &ReaderWriter::writer, &rw, std::ref(inp));
-	threadReader.get();
-	threadWriter.get();
-
+	ReaderWriter rw(std::make_unique<ImageFIFO>(2548762, 3), inp, out);
+	rw.exec(async_exec);
 	EXPECT_TRUE(several_pairs_equal_files(inp, out));
 }
 /*
