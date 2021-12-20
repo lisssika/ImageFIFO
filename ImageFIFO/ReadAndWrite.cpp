@@ -30,7 +30,7 @@ std::pair<int, int> ReaderWriter::exec(bool async)
 		if (fifo_->get_blockCount() < file_names_inp_.size())
 		{
 			throw std::runtime_error(
-				"Sync mode requires the count of blocks to be greater than the number of input files");
+				"Sync mode requires the count of blocks to be greater or equal the number of input files");
 		}
 		policy = std::launch::deferred;
 	}
