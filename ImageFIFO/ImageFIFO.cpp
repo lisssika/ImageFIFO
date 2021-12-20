@@ -10,7 +10,7 @@ void* ImageFIFO::get_ptr(bool flag)
 	{
 		if (flags[i] == flag)
 		{
-			return m_Data.get() + i * blockSize_;
+			return &m_Data.get() [ i * blockSize_];
 		}
 		ptr += blockSize_;
 	}

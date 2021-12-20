@@ -14,7 +14,7 @@ public:
 	size_t get_blockCount() const;
 private:
 	std::mutex m_FifoMutex;
-	std::unique_ptr<char> m_Data;
+	std::unique_ptr<char[]> m_Data;
 	std::vector<bool> flags;
 
 	void* get_ptr(bool flag);

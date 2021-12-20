@@ -15,7 +15,7 @@ ReaderWriter::ReaderWriter(
 	file_names_inp_(file_names_inp),
 	file_names_out_(file_names_out)
 {
-	if(file_names_out!=file_names_inp)
+	if(file_names_out.size()!=file_names_inp.size())
 	{
 		throw std::runtime_error("count of input and output files isn't equal");
 	}
