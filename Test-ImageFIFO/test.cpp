@@ -10,64 +10,68 @@
 #include<memory>
 #include <vector>
 
-std::string input_path("images/input/");
-std::string sync_one_path("images/Sync_one/");
-std::string sync_several_path("images/Sync_several/");
-std::string async_one_path("images/Async_one/");
-std::string async_several_path("images/Async_several/");
-bool async_exec = true;
-
-bool two_equal_files(std::string f1, std::string f2)
+class FileUtils:public ::testing::Test
 {
-	std::ifstream file1(f1, std::ios::binary);
-	std::ifstream file2(f2, std::ios::binary);
-	if (file1 && file2 )
+public:
+	std::string input_path="images/input/";
+	std::string sync_one_path="images/Sync_one/";
+	std::string sync_several_path="images/Sync_several/";
+	std::string async_one_path="images/Async_one/";
+	std::string async_several_path="images/Async_several/";
+	bool async_exec = true;
+
+	bool two_equal_files(const std::string& f1, const std::string& f2) const
 	{
-		return std::equal(
-			std::istreambuf_iterator<char>(file1),
-			std::istreambuf_iterator<char>(),
-			std::istreambuf_iterator<char>(file2)
-		);
+		std::ifstream file1(f1, std::ios::binary);
+		std::ifstream file2(f2, std::ios::binary);
+		if (file1 && file2)
+		{
+			return std::equal(
+				std::istreambuf_iterator<char>(file1),
+				std::istreambuf_iterator<char>(),
+				std::istreambuf_iterator<char>(file2)
+			);
+		}
+		return false;
 	}
-	return false;
-}
 
-bool several_pairs_equal_files(const std::vector<std::string>& inp, const std::vector<std::string>& out)
-{
-	bool is_equal = true;
-
-	for (size_t i = 0; i < inp.size();i++ ) {
-		is_equal*=two_equal_files(inp[i], out[i]);
-	}
-	return is_equal;
-}
-
-void generate_file_names(size_t n, std::vector<std::string>& inp, std::vector<std::string>& out, bool sync)
-{
-	for (size_t i = 1; i <= n; i++)
+	bool several_pairs_equal_files(const std::vector<std::string>& inp, const std::vector<std::string>& out)
 	{
-		inp.push_back(input_path + "input" + std::to_string(i) + ".BMP ");
-		if(sync)
-		{
-			out.push_back( sync_several_path + "output" + std::to_string(i) + ".BMP ");
+		bool is_equal = true;
+
+		for (size_t i = 0; i < inp.size(); i++) {
+			is_equal *= two_equal_files(inp[i], out[i]);
 		}
-		else
+		return is_equal;
+	}
+
+	void generate_file_names(size_t n, std::vector<std::string>& inp, std::vector<std::string>& out, bool sync) const
+	{
+		for (size_t i = 1; i <= n; i++)
 		{
-			out.push_back( async_several_path + "output" + std::to_string(i) + ".BMP ");
+			inp.push_back(input_path + "input" + std::to_string(i) + ".BMP ");
+			if (sync)
+			{
+				out.push_back(sync_several_path + "output" + std::to_string(i) + ".BMP ");
+			}
+			else
+			{
+				out.push_back(async_several_path + "output" + std::to_string(i) + ".BMP ");
+			}
 		}
 	}
-}
+};
 
-TEST(TestEqualFunc, equal_files_) {
+class TestEqualFunc :public FileUtils {};
+TEST_F(TestEqualFunc, equal_files_) {
   EXPECT_TRUE(two_equal_files(input_path+"input1.BMP", "images/output/output1.BMP"));
 }
 
-
-TEST(TestEqualFunc, different_files_) {
+TEST_F(TestEqualFunc, different_files_) {
 	EXPECT_TRUE(!two_equal_files(input_path+"input2.BMP", "images/output/output1.BMP"));
 }
-
-TEST(Sync, one_file)
+class Sync:public FileUtils{};
+TEST_F(Sync, one_file)
 {
 	ImageFIFO image_fifo(2548762, 1);
 	const std::string inp = input_path + "input1.BMP";
@@ -77,7 +81,7 @@ TEST(Sync, one_file)
 	EXPECT_TRUE(two_equal_files(inp, out));
 }
 
-TEST(Sync, sevral_files)
+TEST_F(Sync, sevral_files)
 {
 	std::vector<std::string> inp;
 	std::vector<std::string> out;
@@ -87,8 +91,8 @@ TEST(Sync, sevral_files)
 	EXPECT_TRUE(several_pairs_equal_files(inp, out));
 }
 
-
-TEST(Async, one_file)
+class Async:public FileUtils{};
+TEST_F(Async, one_file)
 {
 	const std::string inp = input_path + "input1.BMP";
 	const std::string out = async_one_path + "output1.BMP";
@@ -97,7 +101,7 @@ TEST(Async, one_file)
 	EXPECT_TRUE(two_equal_files(inp, out));
 }
 
-TEST(Async, several_files)
+TEST_F(Async, several_files)
 {
 	ImageFIFO image_fifo(2548762, 3);
 	std::vector<std::string> inp;
